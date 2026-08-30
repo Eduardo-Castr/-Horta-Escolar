@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Painel de Irrigação</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0F1F17;
+    --surface:#16281F;
+    --surface-raised:#1E3428;
+    --line: rgba(234,240,230,0.09);
+    --line-strong: rgba(234,240,230,0.16);
+    --water:#5FB8D9;
+    --growth:#9FD656;
+    --growth-deep:#25390E;
+    --manual:#E2A54D;
+    --manual-deep:#3E2C0C;
+    --danger:#E2704D;
+    --text-primary:#EDF2E8;
+    --text-muted:#8FAD9B;
+    --text-faint:#5C7568;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--text-primary);
+    font-family:'Inter',sans-serif;
+    min-height:100vh;
+    padding:32px 20px 60px;
+  }
+  .wrap{max-width:960px;margin:0 auto;}
+
+  header{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-end;
+    flex-wrap:wrap;
+    gap:16px;
+    margin-bottom:28px;
+    padding-bottom:20px;
+    border-bottom:1px solid var(--line);
+  }
+  .eyebrow{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    letter-spacing:0.14em;
+    text-transform:uppercase;
+    color:var(--water);
+    margin:0 0 6px;
+  }
+  h1{
+    font-family:'Fraunces',serif;
+    font-weight:600;
+    font-size:30px;
+    margin:0;
+    letter-spacing:-0.01em;
+  }
+  .status-pill{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    color:var(--text-muted);
+  }
+  .dot{
+    width:8px;height:8px;border-radius:50%;
+    background:var(--growth);
+    box-shadow:0 0 0 0 rgba(159,214,86,0.5);
+    animation:pulseDot 2.2s ease-out infinite;
+  }
+  .dot.offline{
+    background:var(--danger);
+    animation:none;
+    box-shadow:none;
+  }
+  .dot.stale{
+    background:var(--manual);
+    animation:none;
+    box-shadow:0 0 6px 1px rgba(226,165,77,0.5);
+  }
+  @keyframes pulseDot{
+    0%{box-shadow:0 0 0 0 rgba(159,214,86,0.45);}
+    70%{box-shadow:0 0 0 7px rgba(159,214,86,0);}
+    100%{box-shadow:0 0 0 0 rgba(159,214,86,0);}
+  }
+
+  .device-panel{
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:16px 20px;
+    margin-bottom:22px;
+  }
+  .device-info{
+    display:flex;
+    align-items:center;
+    gap:16px;
+    flex-wrap:wrap;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    color:var(--text-muted);
+  }
+  .device-info b{color:var(--text-primary);font-weight:500;}
+
+  .stats-row{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:16px;
+    margin-bottom:22px;
+  }
+  .visor{
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:20px 22px;
+    display:flex;
+    align-items:center;
+    gap:18px;
+  }
+  .visor .label{
+    margin:0 0 6px;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color:var(--text-faint);
+  }
+
+  .moisture-gauge{width:44px;height:60px;flex-shrink:0;}
+  .moisture-value{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:30px;
+    font-weight:500;
+    line-height:1;
+  }
+  .moisture-tag{
+    margin-top:6px;
+    font-size:13px;
+    color:var(--text-muted);
+  }
+
+  .mode-lamp{
+    width:12px;height:12px;
+    border-radius:50%;
+    flex-shrink:0;
+    background:var(--growth);
+    box-shadow:0 0 8px 1px rgba(159,214,86,0.55);
+    transition:background 0.3s ease, box-shadow 0.3s ease;
+  }
+  .mode-lamp.manual{
+    background:var(--manual);
+    box-shadow:0 0 8px 1px rgba(226,165,77,0.55);
+  }
+  .mode-readout{
+    font-family:'Fraunces',serif;
+    font-size:20px;
+    font-weight:600;
+  }
+  .mode-desc{
+    margin-top:6px;
+    font-size:13px;
+    color:var(--text-muted);
+    line-height:1.5;
+  }
+
+  .grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));
+    gap:16px;
+  }
+  .card{
+    position:relative;
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:20px;
+    transition:border-color 0.3s ease;
+    overflow:hidden;
+  }
+  .card.active{
+    border-color:var(--growth);
+  }
+  .card.active::before{
+    content:"";
+    position:absolute;
+    inset:0;
+    border-radius:14px;
+    padding:1px;
+    pointer-events:none;
+    background:repeating-linear-gradient(90deg, var(--growth) 0 8px, transparent 8px 16px);
+    -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    animation:flow 1.1s linear infinite;
+  }
+  @keyframes flow{
+    0%{background-position:0 0;}
+    100%{background-position:16px 0;}
+  }
+
+  .garden-name{
+    font-family:'Fraunces',serif;
+    font-size:18px;
+    font-weight:600;
+    margin:0 0 2px;
+  }
+  .garden-sub{
+    margin:0 0 16px;
+    font-size:12px;
+    color:var(--text-faint);
+    font-family:'IBM Plex Mono',monospace;
+  }
+  .badge{
+    display:inline-block;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10px;
+    letter-spacing:0.06em;
+    padding:4px 9px;
+    border-radius:20px;
+    white-space:nowrap;
+  }
+  .badge.on{background:var(--growth-deep);color:var(--growth);}
+  .badge.off{background:rgba(255,255,255,0.05);color:var(--text-faint);}
+
+  footer{
+    margin-top:28px;
+    padding-top:18px;
+    border-top:1px solid var(--line);
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    flex-wrap:wrap;
+    gap:10px;
+    font-size:12px;
+    color:var(--text-faint);
+    font-family:'IBM Plex Mono',monospace;
+  }
+
+  .warning{
+    display:none;
+    background:rgba(226,112,77,0.1);
+    border:1px solid rgba(226,112,77,0.35);
+    color:#F0A98E;
+    border-radius:10px;
+    padding:10px 14px;
+    font-size:12px;
+    margin-bottom:18px;
+    font-family:'IBM Plex Mono',monospace;
+  }
+  .warning.show{display:block;}
+
+  .failure-banner{
+    display:none;
+    background:var(--danger-deep, #3E1F14);
+    border:1px solid var(--danger);
+    color:#FFD9CC;
+    border-radius:12px;
+    padding:14px 18px;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:13px;
+    font-weight:500;
+    letter-spacing:0.02em;
+    margin-bottom:18px;
+    animation:failurePulse 1.6s ease-in-out infinite;
+  }
+  .failure-banner.show{display:block;}
+  @keyframes failurePulse{
+    0%,100%{box-shadow:0 0 0 0 rgba(226,112,77,0.4);}
+    50%{box-shadow:0 0 0 6px rgba(226,112,77,0);}
+  }
+
+  @media(max-width:560px){
+    h1{font-size:24px;}
+    .stats-row{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div>
+      <p class="eyebrow">Sistema de irrigação</p>
+      <h1>Painel da Horta</h1>
+    </div>
+    <div class="status-pill"><span class="dot" id="conn-dot"></span><span id="conn-text">conectando…</span></div>
+  </header>
+
+  <div class="failure-banner" id="failure-banner">
+    ⚠ FALHA IRRIGAÇÃO — a umidade não subiu dentro do prazo. Verifique bomba/válvula/cano e resete pela chave ou nos ajustes.
+  </div>
+
+  <div class="device-panel">
+    <div class="device-info">
+      <span class="badge off" id="device-status-badge">VERIFICANDO</span>
+      <span>Placa: <b id="device-board">—</b></span>
+      <span>IP: <b id="device-ip">—</b></span>
+      <span>Online há: <b id="device-uptime">—</b></span>
+    </div>
+  </div>
+
+  <div class="warning" id="warning-box">
+    Sem resposta do Firebase. Verifique sua conexão com a internet e se o ESP32 está enviando os dados.
+  </div>
+
+  <div class="stats-row">
+    <div class="visor">
+      <svg class="moisture-gauge" viewBox="0 0 100 140">
+        <defs>
+          <clipPath id="clip-soil"><path d="M50 4 C50 4 92 66 92 97 C92 121.3 73.4 140 50 140 C26.6 140 8 121.3 8 97 C8 66 50 4 50 4 Z"/></clipPath>
+        </defs>
+        <path d="M50 4 C50 4 92 66 92 97 C92 121.3 73.4 140 50 140 C26.6 140 8 121.3 8 97 C8 66 50 4 50 4 Z" fill="none" stroke="var(--line-strong)" stroke-width="2"/>
+        <g clip-path="url(#clip-soil)">
+          <rect id="soil-fill" x="0" width="100" y="140" height="0" fill="var(--water)" style="transition: y 0.8s ease, height 0.8s ease;"/>
+        </g>
+      </svg>
+      <div>
+        <p class="label">Umidade do solo</p>
+        <div class="moisture-value" id="soil-value">--%</div>
+        <div class="moisture-tag" id="soil-tag">aguardando dados…</div>
+      </div>
+    </div>
+
+    <div class="visor">
+      <span class="mode-lamp" id="mode-lamp"></span>
+      <div>
+        <p class="label">Modo do sistema</p>
+        <div class="mode-readout" id="mode-readout">—</div>
+        <div class="mode-desc" id="mode-desc">Aguardando conexão com a placa.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid" id="grid"></div>
+
+  <footer>
+    <span>4 jardins · 1 relé cada · sensor de umidade único</span>
+    <span id="active-summary">—</span>
+  </footer>
+
+</div>
+
+<script>
+  const GARDEN_NAMES = ["Válvula 1","Válvula 2","Válvula 3","Válvula 4"];
+
+  // URL fixa do status no Firebase Realtime Database.
+  // Se um dia trocar de projeto, só editar esta linha.
+  const STATUS_URL = "https://projeto-do-jardim-escola-default-rtdb.firebaseio.com/status.json";
+
+  const grid = document.getElementById('grid');
+  const warningBox = document.getElementById('warning-box');
+
+  for (let i = 1; i <= 4; i++) grid.appendChild(buildCard(i));
+
+  function buildCard(i){
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.id = 'card-' + i;
+    card.innerHTML = `
+      <p class="garden-name">${GARDEN_NAMES[i-1]}</p>
+      <p class="garden-sub">setor 0${i} · relé ${i}</p>
+      <span class="badge off" id="badge-${i}">EM ESPERA</span>
+    `;
+    return card;
+  }
+
+  function moistureTag(v){
+    if (v < 20) return 'Solo seco — abaixo do limite de início';
+    if (v < 70) return 'Umidade em recuperação';
+    return 'Umidade ideal';
+  }
+
+  function applyStatus(data){
+    // falha de irrigação (malha fechada) — só mostra se o monitoramento estiver ativo
+    const showFailure = !!data.closedLoopEnabled && !!data.irrigationFailure;
+    document.getElementById('failure-banner').classList.toggle('show', showFailure);
+
+    // umidade
+    const v = Math.round(data.soilMoisture);
+    document.getElementById('soil-value').textContent = v + '%';
+    document.getElementById('soil-tag').textContent = moistureTag(v);
+    const fillHeight = 140 * (v / 100);
+    const rect = document.getElementById('soil-fill');
+    rect.setAttribute('y', 140 - fillHeight);
+    rect.setAttribute('height', fillHeight);
+
+    // modo
+    const isAuto = data.mode === 'automatico';
+    document.getElementById('mode-lamp').classList.toggle('manual', !isAuto);
+    document.getElementById('mode-readout').textContent = isAuto ? 'Automático' : 'Manual';
+    document.getElementById('mode-desc').textContent = isAuto
+      ? 'Sequência inicia com solo abaixo de 20% e para ao atingir 70%.'
+      : 'Sequência 1 → 4 rodando continuamente, sem parar.';
+
+    // relés / jardim ativo
+    for (let i = 1; i <= 4; i++){
+      const isActive = data.activeGarden === i;
+      const card = document.getElementById('card-' + i);
+      card.classList.toggle('active', isActive);
+      const badge = document.getElementById('badge-' + i);
+      badge.textContent = isActive ? 'IRRIGANDO' : 'EM ESPERA';
+      badge.className = 'badge ' + (isActive ? 'on' : 'off');
+    }
+
+    // placa
+    document.getElementById('device-board').textContent = data.board || '—';
+    document.getElementById('device-ip').textContent = data.ip || '—';
+    document.getElementById('device-uptime').textContent = formatUptime(data.uptimeSeconds || 0);
+
+    document.getElementById('active-summary').textContent =
+      (data.activeGarden ? 'Válvula ativa agora: ' + data.activeGarden : 'Nenhuma válvula ativa') +
+      ' · modo ' + (isAuto ? 'automático' : 'manual');
+  }
+
+  function formatUptime(sec){
+    const h = Math.floor(sec / 3600);
+    const m = Math.floor((sec % 3600) / 60);
+    const s = sec % 60;
+    if (h > 0) return `${h}h ${m}m`;
+    if (m > 0) return `${m}m ${s}s`;
+    return `${s}s`;
+  }
+
+  // Se a placa não atualizar o Firebase por mais que isso (3x o intervalo
+  // de envio do firmware, que é 5s), consideramos ela offline mesmo que
+  // o Firebase continue respondendo normalmente com o último valor salvo.
+  const STALE_AFTER_MS = 15000;
+
+  // state: 'online' | 'stale' | 'unreachable'
+  function setConnection(state){
+    const dot = document.getElementById('conn-dot');
+    const text = document.getElementById('conn-text');
+    const badge = document.getElementById('device-status-badge');
+
+    dot.classList.remove('offline', 'stale');
+    if (state === 'online') {
+      text.textContent = 'placa online';
+      badge.textContent = 'ONLINE';
+      badge.className = 'badge on';
+      warningBox.classList.remove('show');
+    } else if (state === 'stale') {
+      dot.classList.add('stale');
+      text.textContent = 'placa offline (dados antigos)';
+      badge.textContent = 'OFFLINE';
+      badge.className = 'badge off';
+      warningBox.classList.add('show');
+      warningBox.textContent = 'A placa não envia dados novos há um tempo. Ela pode estar desligada, sem Wi-Fi ou travada — os valores abaixo são os últimos recebidos.';
+    } else {
+      dot.classList.add('offline');
+      text.textContent = 'sem resposta do Firebase';
+      badge.textContent = 'OFFLINE';
+      badge.className = 'badge off';
+      warningBox.classList.add('show');
+      warningBox.textContent = 'Sem resposta do Firebase. Verifique sua conexão com a internet.';
+    }
+  }
+
+  async function poll(){
+    try {
+      const res = await fetch(STATUS_URL, { cache: 'no-store' });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+      if (!data) throw new Error('sem dados ainda'); // Firebase retorna null se o nó estiver vazio
+
+      applyStatus(data);
+
+      const isFresh = typeof data.lastSeen === 'number' && (Date.now() - data.lastSeen < STALE_AFTER_MS);
+      setConnection(isFresh ? 'online' : 'stale');
+    } catch (err) {
+      setConnection('unreachable');
+    }
+  }
+
+  poll();
+  setInterval(poll, 3000);
+</script>
+</body>
+</html>
